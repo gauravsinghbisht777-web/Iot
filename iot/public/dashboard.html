@@ -4,530 +4,800 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IoT Sensor Dashboard</title>
+  <title>IoT Sensor Dashboard — Live Monitor</title>
+  <meta name="description" content="Real-time IoT sensor dashboard for temperature, humidity, distance monitoring and material level tracking.">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg-primary: #06080f;
+      --bg-card: rgba(15, 20, 35, 0.6);
+      --bg-card-hover: rgba(20, 28, 50, 0.8);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-glow: rgba(99, 102, 241, 0.3);
+      --text-primary: #f1f5f9;
+      --text-secondary: #8892b0;
+      --text-muted: #5a6488;
+      --accent-cyan: #22d3ee;
+      --accent-violet: #8b5cf6;
+      --accent-orange: #fb923c;
+      --accent-emerald: #34d399;
+      --accent-rose: #fb7185;
+      --accent-blue: #60a5fa;
+      --radius: 20px;
+      --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: var(--bg-primary);
       min-height: 100vh;
-      color: #e2e8f0;
-      padding: 2rem;
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    /* ===== ANIMATED BACKGROUND ===== */
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-mesh .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.15;
+      animation: orbFloat 25s infinite ease-in-out alternate;
+    }
+
+    .bg-mesh .orb-1 {
+      width: 600px; height: 600px;
+      background: var(--accent-violet);
+      top: -200px; left: -200px;
+    }
+
+    .bg-mesh .orb-2 {
+      width: 500px; height: 500px;
+      background: var(--accent-cyan);
+      bottom: -150px; right: -150px;
+      animation-delay: -8s;
+    }
+
+    .bg-mesh .orb-3 {
+      width: 400px; height: 400px;
+      background: var(--accent-orange);
+      top: 50%; left: 40%;
+      animation-delay: -15s;
+      opacity: 0.08;
+    }
+
+    @keyframes orbFloat {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(60px, 80px) scale(1.15); }
+    }
+
+    /* ===== GRID OVERLAY ===== */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    /* ===== LAYOUT ===== */
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      padding: 1.5rem;
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
     }
 
-    header {
-      text-align: center;
+    /* ===== HEADER ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 1rem;
     }
 
-    h1 {
-      font-size: 2.5rem;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.25);
+    }
+
+    .header-title {
+      font-size: 1.35rem;
       font-weight: 700;
-      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      letter-spacing: -0.3px;
+    }
+
+    .header-title span {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.5rem;
     }
 
-    .subtitle {
-      color: #94a3b8;
-      font-size: 1rem;
-    }
-
-    .status-bar {
+    .header-right {
       display: flex;
-      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* ===== STATUS BADGE ===== */
+    .status-badge {
+      display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 2rem;
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #4ade80;
+      letter-spacing: 0.02em;
     }
 
-    .status-dot {
-      width: 10px;
-      height: 10px;
+    .status-badge .dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #22c55e;
-      animation: pulse 2s infinite;
+      background: #4ade80;
+      animation: statusPulse 2s infinite;
     }
 
-    .status-dot.disconnected {
-      background: #ef4444;
+    .status-badge.offline {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .status-badge.offline .dot {
+      background: #f87171;
       animation: none;
     }
 
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
+    .status-badge.paused {
+      background: rgba(251, 146, 60, 0.08);
+      border-color: rgba(251, 146, 60, 0.2);
+      color: #fb923c;
     }
 
-    .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
+    .status-badge.paused .dot {
+      background: #fb923c;
+      animation: none;
     }
 
-    .sensor-card {
-      background: rgba(30, 41, 59, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-      border-radius: 1rem;
-      padding: 1.5rem;
+    @keyframes statusPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      padding: 0.55rem 1.25rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
       backdrop-filter: blur(10px);
-      transition: transform 0.3s, box-shadow 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
     }
 
-    .sensor-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    .btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+      border-color: var(--border-glow);
+      transform: translateY(-1px);
     }
 
-    .sensor-icon {
-      width: 50px;
-      height: 50px;
+    .btn.active {
+      background: rgba(251, 146, 60, 0.15);
+      border-color: rgba(251, 146, 60, 0.4);
+      color: #fb923c;
+    }
+
+    .btn-danger {
+      color: var(--accent-rose);
+    }
+
+    .btn-danger:hover {
+      background: rgba(251, 113, 133, 0.1);
+      border-color: rgba(251, 113, 133, 0.3);
+    }
+
+    .btn-home {
+      text-decoration: none;
+    }
+
+    /* ===== SENSOR CARDS ===== */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      backdrop-filter: blur(20px);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: var(--radius) var(--radius) 0 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .metric-card:hover {
+      border-color: var(--border-glow);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    }
+
+    .metric-card:hover::before {
+      opacity: 1;
+    }
+
+    .metric-card.temp::before { background: linear-gradient(90deg, #f97316, #ef4444); }
+    .metric-card.humidity::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+    .metric-card.distance::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .metric-card.level::before { background: linear-gradient(90deg, #10b981, #34d399); }
+    .metric-card.volume::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+
+    .metric-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .metric-icon {
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
+      font-size: 1.2rem;
     }
 
-    .sensor-card.temp .sensor-icon {
-      background: linear-gradient(135deg, #f97316, #ef4444);
-    }
+    .metric-card.temp .metric-icon { background: rgba(249, 115, 22, 0.12); }
+    .metric-card.humidity .metric-icon { background: rgba(6, 182, 212, 0.12); }
+    .metric-card.distance .metric-icon { background: rgba(139, 92, 246, 0.12); }
+    .metric-card.level .metric-icon { background: rgba(16, 185, 129, 0.12); }
+    .metric-card.volume .metric-icon { background: rgba(59, 130, 246, 0.12); }
 
-    .sensor-card.humidity .sensor-icon {
-      background: linear-gradient(135deg, #06b6d4, #0ea5e9);
-    }
-
-    .sensor-card.distance .sensor-icon {
-      background: linear-gradient(135deg, #8b5cf6, #a855f7);
-    }
-
-    .sensor-label {
-      color: #94a3b8;
-      font-size: 0.875rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
-    }
-
-    .sensor-value {
-      font-size: 2.5rem;
+    .metric-label {
+      font-size: 0.7rem;
       font-weight: 700;
-      color: #f8fafc;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
     }
 
-    .sensor-unit {
-      font-size: 1rem;
-      font-weight: 400;
-      color: #94a3b8;
-      margin-left: 0.25rem;
+    .metric-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+      font-variant-numeric: tabular-nums;
     }
 
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-      gap: 1.5rem;
+    .metric-card.temp .metric-value { color: #fb923c; }
+    .metric-card.humidity .metric-value { color: #22d3ee; }
+    .metric-card.distance .metric-value { color: #a78bfa; }
+    .metric-card.level .metric-value { color: #34d399; }
+    .metric-card.volume .metric-value { color: #60a5fa; }
+
+    .metric-unit {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
     }
 
-    .chart-card {
-      background: rgba(30, 41, 59, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      backdrop-filter: blur(10px);
-      width: 100%;
+    /* ===== PROGRESS BAR ===== */
+    .level-bar-wrap {
+      margin-top: 0.75rem;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 100px;
       overflow: hidden;
     }
 
-    .chart-title {
-      font-size: 1.125rem;
+    .level-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s;
+    }
+
+    /* ===== SETTINGS PANEL ===== */
+    .settings-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .settings-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+
+    .settings-inputs {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .input-group label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .input-group input {
+      width: 80px;
+      padding: 0.45rem 0.65rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      outline: none;
+      transition: var(--transition);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+    }
+
+    /* ===== CHARTS ===== */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      backdrop-filter: blur(20px);
+      transition: var(--transition);
+    }
+
+    .chart-card:hover {
+      border-color: var(--border-glow);
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 1rem;
-      color: #f8fafc;
+    }
+
+    .chart-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chart-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.3rem 0.7rem;
+      border-radius: 100px;
+      background: rgba(139, 92, 246, 0.1);
+      color: var(--accent-violet);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
 
     .chart-container {
       position: relative;
-      height: 250px;
+      height: 220px;
       width: 100%;
     }
 
-    .last-update {
+    /* ===== FOOTER ===== */
+    .footer-bar {
       text-align: center;
-      color: #64748b;
-      font-size: 0.875rem;
-      margin-top: 2rem;
+      padding: 1rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .footer-bar span {
+      color: var(--text-secondary);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1200px) {
+      .metrics-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
     }
 
     @media (max-width: 768px) {
-      body {
-        padding: 1rem;
-      }
+      .app { padding: 1rem; }
 
-      h1 {
-        font-size: 1.75rem;
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
 
       .charts-grid {
         grid-template-columns: 1fr;
       }
+
+      .header { flex-direction: column; align-items: flex-start; }
+
+      .metric-value { font-size: 1.8rem; }
+
+      .settings-panel { flex-direction: column; align-items: flex-start; }
     }
 
-    .pause-btn {
-      margin-top: 1rem;
-      padding: 0.6rem 1.5rem;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s ease;
+    @media (max-width: 480px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-right { width: 100%; justify-content: flex-start; }
     }
 
-    .pause-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .pause-btn.active {
-      background: #ef4444;
-      border-color: #ef4444;
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-    }
+    .metric-card { animation: fadeInUp 0.6s ease-out both; }
+    .metric-card:nth-child(1) { animation-delay: 0.05s; }
+    .metric-card:nth-child(2) { animation-delay: 0.1s; }
+    .metric-card:nth-child(3) { animation-delay: 0.15s; }
+    .metric-card:nth-child(4) { animation-delay: 0.2s; }
+    .metric-card:nth-child(5) { animation-delay: 0.25s; }
 
-    .reset-btn {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #f8fafc;
-      margin-left: 0.5rem;
-    }
-
-    .reset-btn:hover {
-      background: rgba(239, 68, 68, 0.3);
-    }
-
-    /* Container Settings Styles */
-    .dashboard-settings {
-      background: rgba(30, 41, 59, 0.5);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      backdrop-filter: blur(10px);
-    }
-
-    .settings-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #f8fafc;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .settings-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1rem;
-    }
-
-    .setting-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .setting-item label {
-      font-size: 0.75rem;
-      color: #94a3b8;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .setting-item input {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 8px;
-      padding: 0.6rem;
-      color: #fff;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.3s;
-    }
-
-    .setting-item input:focus {
-      border-color: #06b6d4;
-    }
-
-    /* New Specific Cards */
-    .sensor-card.level .sensor-icon {
-      background: linear-gradient(135deg, #10b981, #34d399);
-    }
-
-    .sensor-card.volume .sensor-icon {
-      background: linear-gradient(135deg, #3b82f6, #60a5fa);
-    }
-
-    .progress-mini {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      margin-top: 1rem;
-      overflow: hidden;
-    }
-
-    .progress-mini-bar {
-      height: 100%;
-      width: 0%;
-      background: #10b981;
-      transition: width 1s ease;
-    }
+    .chart-card { animation: fadeInUp 0.6s ease-out 0.3s both; }
+    .settings-panel { animation: fadeInUp 0.6s ease-out 0.1s both; }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <header>
-      <h1>IoT Sensor Dashboard</h1>
-      <p class="subtitle">DHT22 Temperature & Humidity | Ultrasonic Distance</p>
-      <button id="pauseBtn" class="pause-btn">Pause Updates</button>
-      <button id="resetBtn" class="pause-btn reset-btn">Reset Data</button>
-    </header>
+  <!-- Ambient Background -->
+  <div class="bg-mesh">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="grid-overlay"></div>
 
-    <div class="status-bar">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Connected</span>
-    </div>
+  <div class="app">
+    <div class="container">
 
-    <div class="dashboard-settings">
-      <div class="settings-title"><span>⚙️</span> Container Configuration</div>
-      <div class="settings-grid">
-        <div class="setting-item">
-          <label for="boxL">Length (m)</label>
-          <input type="number" id="boxL" value="0.2" step="0.01">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <div class="logo-icon">⚡</div>
+          <div class="header-title"><span>IoT</span> Dashboard</div>
         </div>
-        <div class="setting-item">
-          <label for="boxB">Breadth (m)</label>
-          <input type="number" id="boxB" value="0.2" step="0.01">
+        <div class="header-right">
+          <div class="status-badge" id="statusBadge">
+            <div class="dot"></div>
+            <span id="statusText">Live</span>
+          </div>
+          <button id="pauseBtn" class="btn">⏸ Pause</button>
+          <button id="resetBtn" class="btn btn-danger">↺ Reset</button>
+          <a href="index.html" class="btn btn-home">← Home</a>
         </div>
-        <div class="setting-item">
-          <label for="boxH">Box Height (m)</label>
-          <input type="number" id="boxH" value="0.5" step="0.01">
-        </div>
-      </div>
-    </div>
+      </header>
 
-    <div class="cards-grid">
-      <div class="sensor-card temp">
-        <div class="sensor-icon">🌡️</div>
-        <div class="sensor-label">Temperature</div>
-        <div class="sensor-value"><span id="tempValue">--</span><span class="sensor-unit">°C</span></div>
-      </div>
-
-      <div class="sensor-card humidity">
-        <div class="sensor-icon">💧</div>
-        <div class="sensor-label">Humidity</div>
-        <div class="sensor-value"><span id="humidityValue">--</span><span class="sensor-unit">%</span></div>
-      </div>
-
-      <div class="sensor-card distance">
-        <div class="sensor-icon">📏</div>
-        <div class="sensor-label">Distance</div>
-        <div class="sensor-value"><span id="distanceValue">--</span><span class="sensor-unit">m</span></div>
-      </div>
-
-      <div class="sensor-card level">
-        <div class="sensor-icon">📊</div>
-        <div class="sensor-label">Fill Level</div>
-        <div class="sensor-value"><span id="levelValue">--</span><span class="sensor-unit">%</span></div>
-        <div class="progress-mini">
-          <div class="progress-mini-bar" id="levelProgress"></div>
+      <!-- Container Settings -->
+      <div class="settings-panel">
+        <div class="settings-label">⚙️ Container</div>
+        <div class="settings-inputs">
+          <div class="input-group">
+            <label>Length (m)</label>
+            <input type="number" id="boxL" value="0.2" step="0.01">
+          </div>
+          <div class="input-group">
+            <label>Breadth (m)</label>
+            <input type="number" id="boxB" value="0.2" step="0.01">
+          </div>
+          <div class="input-group">
+            <label>Height (m)</label>
+            <input type="number" id="boxH" value="0.5" step="0.01">
+          </div>
         </div>
       </div>
 
-      <div class="sensor-card volume">
-        <div class="sensor-icon">🛢️</div>
-        <div class="sensor-label">Volume</div>
-        <div class="sensor-value"><span id="volumeValue">--</span><span class="sensor-unit">m³</span></div>
-      </div>
-    </div>
+      <!-- Metric Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card temp">
+          <div class="metric-header">
+            <div class="metric-icon">🌡️</div>
+            <div class="metric-label">Temperature</div>
+          </div>
+          <div class="metric-value"><span id="tempValue">--</span><span class="metric-unit"> °C</span></div>
+        </div>
 
-    <div class="charts-grid">
-      <div class="chart-card">
-        <div class="chart-title">Temperature & Humidity</div>
-        <div class="chart-container">
-          <canvas id="tempChart"></canvas>
+        <div class="metric-card humidity">
+          <div class="metric-header">
+            <div class="metric-icon">💧</div>
+            <div class="metric-label">Humidity</div>
+          </div>
+          <div class="metric-value"><span id="humidityValue">--</span><span class="metric-unit"> %</span></div>
+        </div>
+
+        <div class="metric-card distance">
+          <div class="metric-header">
+            <div class="metric-icon">📏</div>
+            <div class="metric-label">Distance</div>
+          </div>
+          <div class="metric-value"><span id="distanceValue">--</span><span class="metric-unit"> m</span></div>
+        </div>
+
+        <div class="metric-card level">
+          <div class="metric-header">
+            <div class="metric-icon">📊</div>
+            <div class="metric-label">Fill Level</div>
+          </div>
+          <div class="metric-value"><span id="levelValue">--</span><span class="metric-unit"> %</span></div>
+          <div class="level-bar-wrap">
+            <div class="level-bar-fill" id="levelProgress"></div>
+          </div>
+        </div>
+
+        <div class="metric-card volume">
+          <div class="metric-header">
+            <div class="metric-icon">🛢️</div>
+            <div class="metric-label">Volume</div>
+          </div>
+          <div class="metric-value"><span id="volumeValue">--</span><span class="metric-unit"> m³</span></div>
         </div>
       </div>
 
-      <div class="chart-card">
-        <div class="chart-title">Distance</div>
-        <div class="chart-container">
-          <canvas id="distanceChart"></canvas>
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Temperature & Humidity</div>
+            <div class="chart-badge">Live</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="tempChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Distance Readings</div>
+            <div class="chart-badge">Live</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="distanceChart"></canvas>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="last-update">
-      Last updated: <span id="lastUpdate">--</span>
+      <!-- Footer -->
+      <div class="footer-bar">
+        Last updated: <span id="lastUpdate">--</span> · IoT Connect © 2026
+      </div>
+
     </div>
   </div>
 
   <script>
+    // ===== STATE =====
     let isPaused = false;
-    const pauseBtn = document.getElementById('pauseBtn');
 
+    // ===== DOM REFS =====
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+    const boxL = document.getElementById('boxL');
+    const boxB = document.getElementById('boxB');
+    const boxH = document.getElementById('boxH');
+
+    // ===== PAUSE TOGGLE =====
     pauseBtn.addEventListener('click', () => {
       isPaused = !isPaused;
       if (isPaused) {
-        pauseBtn.textContent = 'Resume Updates';
+        pauseBtn.textContent = '▶ Resume';
         pauseBtn.classList.add('active');
-        document.getElementById('statusText').textContent = 'Paused';
-        document.getElementById('statusDot').style.background = '#f59e0b';
+        statusBadge.className = 'status-badge paused';
+        statusText.textContent = 'Paused';
       } else {
-        pauseBtn.textContent = 'Pause Updates';
+        pauseBtn.textContent = '⏸ Pause';
         pauseBtn.classList.remove('active');
-        document.getElementById('statusText').textContent = 'Connected';
-        document.getElementById('statusDot').style.background = '#22c55e';
+        statusBadge.className = 'status-badge';
+        statusText.textContent = 'Live';
         updateDashboard();
         updateCharts();
       }
     });
 
-    const resetBtn = document.getElementById('resetBtn');
+    // ===== RESET =====
     resetBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to completely reset the dashboard and clear all charts?')) {
+      if (confirm('Reset all data and clear charts?')) {
         fetch('/api/reset', { method: 'POST' })
           .then(res => res.json())
           .then(data => {
             if (data.success) {
-              // Reset manual inputs to 0
               document.getElementById('boxL').value = 0;
               document.getElementById('boxB').value = 0;
               document.getElementById('boxH').value = 0;
               localStorage.setItem('boxL', 0);
               localStorage.setItem('boxB', 0);
               localStorage.setItem('boxH', 0);
-
-              // Ensure old data is cleared visually by forcing a refresh
               updateDashboard();
               updateCharts();
             }
           })
-          .catch(err => console.error('Error resetting data:', err));
+          .catch(err => console.error('Reset error:', err));
       }
     });
 
-    const tempChartCtx = document.getElementById('tempChart').getContext('2d');
-    const distanceChartCtx = document.getElementById('distanceChart').getContext('2d');
+    // ===== CHARTS SETUP =====
+    const chartDefaults = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#8892b0',
+            font: { family: 'Inter', size: 11, weight: '600' },
+            usePointStyle: true,
+            pointStyleWidth: 8,
+            padding: 16
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#5a6488', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }
+        },
+        y: {
+          ticks: { color: '#5a6488', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }
+        }
+      },
+      elements: {
+        point: { radius: 2, hoverRadius: 5 },
+        line: { borderWidth: 2.5 }
+      }
+    };
 
-    const tempChart = new Chart(tempChartCtx, {
+    const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
       type: 'line',
       data: {
         labels: [],
         datasets: [
           {
-            label: 'Temperature (°C)',
-            borderColor: '#f97316',
-            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+            label: 'Temp °C',
+            borderColor: '#fb923c',
+            backgroundColor: 'rgba(251, 146, 60, 0.08)',
             fill: true,
             tension: 0.4,
             data: []
           },
           {
-            label: 'Humidity (%)',
-            borderColor: '#06b6d4',
-            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+            label: 'Humidity %',
+            borderColor: '#22d3ee',
+            backgroundColor: 'rgba(34, 211, 238, 0.08)',
             fill: true,
             tension: 0.4,
             data: []
           }
         ]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: { color: '#94a3b8' }
-          }
-        },
-        scales: {
-          x: {
-            ticks: { color: '#64748b' },
-            grid: { color: 'rgba(100, 116, 139, 0.1)' }
-          },
-          y: {
-            ticks: { color: '#64748b' },
-            grid: { color: 'rgba(100, 116, 139, 0.1)' }
-          }
-        }
-      }
+      options: chartDefaults
     });
 
-    const distanceChart = new Chart(distanceChartCtx, {
+    const distanceChart = new Chart(document.getElementById('distanceChart').getContext('2d'), {
       type: 'line',
       data: {
         labels: [],
         datasets: [{
-          label: 'Distance (cm)',
-          borderColor: '#8b5cf6',
-          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          label: 'Distance cm',
+          borderColor: '#a78bfa',
+          backgroundColor: 'rgba(167, 139, 250, 0.08)',
           fill: true,
           tension: 0.4,
           data: []
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: { color: '#94a3b8' }
-          }
-        },
-        scales: {
-          x: {
-            ticks: { color: '#64748b' },
-            grid: { color: 'rgba(100, 116, 139, 0.1)' }
-          },
-          y: {
-            ticks: { color: '#64748b' },
-            grid: { color: 'rgba(100, 116, 139, 0.1)' }
-          }
-        }
-      }
+      options: chartDefaults
     });
 
-    const boxL = document.getElementById('boxL');
-    const boxB = document.getElementById('boxB');
-    const boxH = document.getElementById('boxH');
-
-    // Load saved settings
+    // ===== SETTINGS PERSISTENCE =====
     const savedL = localStorage.getItem('boxL');
     const savedB = localStorage.getItem('boxB');
     const savedH = localStorage.getItem('boxH');
@@ -535,7 +805,6 @@
     if (savedB) boxB.value = savedB;
     if (savedH) boxH.value = savedH;
 
-    // Save on change
     [boxL, boxB, boxH].forEach(input => {
       input.addEventListener('change', () => {
         localStorage.setItem(input.id, input.value);
@@ -543,56 +812,55 @@
       });
     });
 
+    // ===== DATA FETCHING =====
     function updateDashboard() {
       if (isPaused) return;
       fetch('/api/sensor')
         .then(res => res.json())
         .then(data => {
-          const statusDot = document.getElementById('statusDot');
-          const statusText = document.getElementById('statusText');
-
           if (data.temperature === null) {
-            statusDot.classList.add('disconnected');
-            statusText.textContent = 'No data received';
+            statusBadge.className = 'status-badge offline';
+            statusText.textContent = 'Waiting for data';
             return;
           }
 
-          statusDot.classList.remove('disconnected');
-          statusText.textContent = 'Connected';
+          if (!isPaused) {
+            statusBadge.className = 'status-badge';
+            statusText.textContent = 'Live';
+          }
 
           const rawDist = data.distance;
-          const distM = rawDist !== null ? rawDist / 100 : null; // Convert cm from sensor to m
+          const distM = rawDist !== null ? rawDist / 100 : null;
 
           document.getElementById('tempValue').textContent = data.temperature?.toFixed(1) || '--';
           document.getElementById('humidityValue').textContent = data.humidity?.toFixed(1) || '--';
           document.getElementById('distanceValue').textContent = distM?.toFixed(2) || '--';
-          document.getElementById('lastUpdate').textContent = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '--';
+          document.getElementById('lastUpdate').textContent = data.timestamp
+            ? new Date(data.timestamp).toLocaleTimeString()
+            : '--';
 
           if (distM !== null) {
             const L = parseFloat(boxL.value) || 0;
             const B = parseFloat(boxB.value) || 0;
-            const H = parseFloat(boxH.value) || 0;  // All are now in meters
-            
+            const H = parseFloat(boxH.value) || 0;
+
             const materialHeight = Math.max(0, H - distM);
             let percentage = (H > 0) ? (materialHeight / H) * 100 : 0;
             percentage = Math.min(100, Math.max(0, percentage));
-            
+
             const volM3 = L * B * materialHeight;
 
             document.getElementById('levelValue').textContent = percentage.toFixed(1);
             document.getElementById('levelProgress').style.width = percentage + '%';
             document.getElementById('volumeValue').textContent = volM3.toFixed(4);
 
-            // Color indicator for progress
             const bar = document.getElementById('levelProgress');
-            if (percentage >= 80) bar.style.background = '#10b981';
-            else if (percentage >= 40) bar.style.background = '#f59e0b';
-            else bar.style.background = '#f43f5e';
+            if (percentage >= 80) bar.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+            else if (percentage >= 40) bar.style.background = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+            else bar.style.background = 'linear-gradient(90deg, #f43f5e, #fb7185)';
           }
         })
-        .catch(err => {
-          console.error('Error:', err);
-        });
+        .catch(err => console.error('Dashboard error:', err));
     }
 
     function updateCharts() {
@@ -601,27 +869,22 @@
         .then(res => res.json())
         .then(history => {
           const labels = history.map((_, i) => i + 1);
-          const temps = history.map(h => h.temperature);
-          const humids = history.map(h => h.humidity);
-          const distances = history.map(h => h.distance);
 
           tempChart.data.labels = labels;
-          tempChart.data.datasets[0].data = temps;
-          tempChart.data.datasets[1].data = humids;
-          tempChart.update();
+          tempChart.data.datasets[0].data = history.map(h => h.temperature);
+          tempChart.data.datasets[1].data = history.map(h => h.humidity);
+          tempChart.update('none');
 
           distanceChart.data.labels = labels;
-          distanceChart.data.datasets[0].data = distances;
-          distanceChart.update();
+          distanceChart.data.datasets[0].data = history.map(h => h.distance);
+          distanceChart.update('none');
         })
-        .catch(err => {
-          console.error('Error:', err);
-        });
+        .catch(err => console.error('Chart error:', err));
     }
 
+    // ===== START =====
     updateDashboard();
     updateCharts();
-
     setInterval(updateDashboard, 2000);
     setInterval(updateCharts, 5000);
   </script>

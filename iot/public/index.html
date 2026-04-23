@@ -3,25 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart IoT Analytics</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <title>IoT Connect — Smart Sensor Intelligence</title>
+  <meta name="description" content="Next-generation IoT sensor monitoring. Track temperature, humidity, distance and material levels in real-time with ESP32-powered intelligence.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-color: #050511;
-      --glass-bg: rgba(20, 25, 40, 0.4);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --accent-1: #06b6d4;
-      --accent-2: #8b5cf6;
-      --accent-3: #f97316;
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
+      --glass-bg: rgba(12, 16, 30, 0.5);
+      --glass-border: rgba(255, 255, 255, 0.06);
+      --accent-cyan: #22d3ee;
+      --accent-violet: #8b5cf6;
+      --accent-orange: #fb923c;
+      --accent-emerald: #34d399;
+      --text-primary: #f1f5f9;
+      --text-secondary: #8892b0;
+      --text-muted: #5a6488;
     }
 
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     body {
@@ -32,23 +35,60 @@
       position: relative;
     }
 
-    /* Animated Glowing Background Orbs */
+    /* ===== ANIMATED BACKGROUND ===== */
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
     .orb {
       position: absolute;
       border-radius: 50%;
       filter: blur(120px);
-      z-index: -1;
-      opacity: 0.5;
-      animation: float 20s infinite ease-in-out alternate;
+      animation: float 25s infinite ease-in-out alternate;
     }
 
-    .orb-1 { width: 500px; height: 500px; background: var(--accent-1); top: -150px; left: -150px; }
-    .orb-2 { width: 600px; height: 600px; background: var(--accent-2); bottom: -150px; right: -150px; animation-delay: -5s; }
-    .orb-3 { width: 400px; height: 400px; background: var(--accent-3); top: 40%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; mix-blend-mode: screen; opacity: 0.3;}
+    .orb-1 {
+      width: 600px; height: 600px;
+      background: var(--accent-violet);
+      top: -200px; left: -200px;
+      opacity: 0.2;
+    }
+
+    .orb-2 {
+      width: 500px; height: 500px;
+      background: var(--accent-cyan);
+      bottom: -150px; right: -200px;
+      opacity: 0.15;
+      animation-delay: -6s;
+    }
+
+    .orb-3 {
+      width: 450px; height: 450px;
+      background: var(--accent-orange);
+      top: 40%; left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.08;
+      animation-delay: -12s;
+    }
 
     @keyframes float {
       0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-      100% { transform: translate(50px, 80px) scale(1.1) rotate(10deg); }
+      100% { transform: translate(60px, 80px) scale(1.12) rotate(8deg); }
+    }
+
+    /* Grid */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
     }
 
     .container {
@@ -59,230 +99,399 @@
       z-index: 1;
     }
 
+    /* ===== NAV ===== */
     nav {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 1.5rem 0;
-      margin-bottom: 5rem;
+      margin-bottom: 4rem;
       animation: slideDown 1s ease-out;
     }
 
     .logo {
-      font-size: 1.5rem;
-      font-weight: 800;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      letter-spacing: -0.5px;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.25);
     }
 
     .logo-text {
-      background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
+    .nav-badges {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-badge {
+      padding: 0.4rem 0.9rem;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text-secondary);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-badge.live {
+      color: var(--accent-emerald);
+      border-color: rgba(52, 211, 153, 0.2);
+      background: rgba(52, 211, 153, 0.06);
+    }
+
+    /* ===== HERO ===== */
     .hero {
       text-align: center;
-      margin-bottom: 7rem;
+      margin-bottom: 6rem;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 100px;
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-violet);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.8s ease-out both;
     }
 
     .hero h1 {
-      font-size: clamp(3rem, 6vw, 5.5rem);
-      font-weight: 800;
-      line-height: 1.1;
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 1.08;
       margin-bottom: 1.5rem;
-      animation: fadeUp 1s ease-out 0.2s both;
+      letter-spacing: -2px;
+      animation: fadeUp 0.8s ease-out 0.15s both;
     }
 
-    .hero h1 span {
-      background: linear-gradient(135deg, #ffffff, #a5b4fc);
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 40%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 .line-2 {
+      display: block;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .hero p {
-      font-size: clamp(1.1rem, 2vw, 1.25rem);
+      font-size: clamp(1rem, 1.8vw, 1.15rem);
       color: var(--text-secondary);
-      max-width: 650px;
-      margin: 0 auto 3rem auto;
-      line-height: 1.7;
-      animation: fadeUp 1s ease-out 0.4s both;
+      max-width: 620px;
+      margin: 0 auto 2.5rem auto;
+      line-height: 1.75;
+      animation: fadeUp 0.8s ease-out 0.3s both;
     }
 
-    .cta-container {
-      position: relative;
-      display: inline-block;
-      animation: fadeUp 1s ease-out 0.6s both;
+    /* ===== CTA BUTTONS ===== */
+    .cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      animation: fadeUp 0.8s ease-out 0.45s both;
+      flex-wrap: wrap;
     }
 
     .cta-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 1.25rem 3.5rem;
-      font-size: 1.1rem;
-      font-weight: 600;
+      gap: 0.65rem;
+      padding: 1rem 2.5rem;
+      font-size: 1rem;
+      font-weight: 700;
       color: #fff;
       text-decoration: none;
-      background: linear-gradient(135deg, var(--accent-2), var(--accent-1));
-      border-radius: 50px;
-      transition: all 0.3s ease;
-      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+      border-radius: 16px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: none;
+      cursor: pointer;
     }
 
-    .cta-btn::before {
+    .cta-primary {
+      background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+      box-shadow: 0 8px 30px rgba(139, 92, 246, 0.3);
+    }
+
+    .cta-primary::before {
       content: '';
       position: absolute;
       top: 0; left: -100%; width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
-      transition: all 0.6s ease;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.6s ease;
     }
 
-    .cta-btn:hover::before {
-      left: 100%;
+    .cta-primary:hover::before { left: 100%; }
+
+    .cta-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 40px rgba(34, 211, 238, 0.35);
     }
 
-    .cta-btn:hover {
-      transform: translateY(-4px) scale(1.02);
-      box-shadow: 0 15px 40px rgba(6, 182, 212, 0.5);
+    .cta-secondary {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      color: var(--text-secondary);
+    }
+
+    .cta-secondary:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+      background: rgba(20, 28, 50, 0.8);
     }
 
     .cta-btn svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       transition: transform 0.3s ease;
     }
 
-    .cta-btn:hover svg {
-      transform: translateX(4px);
-    }
+    .cta-btn:hover svg { transform: translateX(3px); }
 
+    /* ===== FEATURES ===== */
     .features {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 2rem;
-      animation: fadeUp 1s ease-out 0.8s both;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      animation: fadeUp 0.8s ease-out 0.6s both;
     }
 
     .feature-card {
       background: var(--glass-bg);
       border: 1px solid var(--glass-border);
       border-radius: 24px;
-      padding: 2.5rem;
+      padding: 2rem;
       backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       position: relative;
       overflow: hidden;
+      cursor: default;
+    }
+
+    .feature-card.clickable {
+      cursor: pointer;
     }
 
     .feature-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; width: 100%; height: 4px;
-      background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+      top: 0; left: 0; width: 100%; height: 3px;
+      border-radius: 24px 24px 0 0;
       opacity: 0;
       transition: opacity 0.3s ease;
     }
 
+    .feature-card:nth-child(1)::before { background: linear-gradient(90deg, #fb923c, #ef4444); }
+    .feature-card:nth-child(2)::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .feature-card:nth-child(3)::before { background: linear-gradient(90deg, #22d3ee, #06b6d4); }
+    .feature-card:nth-child(4)::before { background: linear-gradient(90deg, #34d399, #10b981); }
+
     .feature-card:hover {
-      transform: translateY(-10px);
-      border-color: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+      transform: translateY(-8px);
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     }
 
-    .feature-card:hover::before {
-      opacity: 1;
-    }
+    .feature-card:hover::before { opacity: 1; }
 
-    .icon-wrapper {
-      width: 65px;
-      height: 65px;
-      border-radius: 18px;
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
-      margin-bottom: 1.5rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       transition: transform 0.3s ease;
     }
 
-    .feature-card:hover .icon-wrapper {
+    .feature-card:hover .feature-icon {
       transform: scale(1.1) rotate(-5deg);
     }
 
     .feature-card h3 {
-      font-size: 1.4rem;
-      margin-bottom: 1rem;
+      font-size: 1.15rem;
+      margin-bottom: 0.65rem;
       color: #fff;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .feature-card p {
       color: var(--text-secondary);
-      line-height: 1.7;
+      line-height: 1.65;
+      font-size: 0.9rem;
     }
 
+    .feature-tag {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 100px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(52, 211, 153, 0.08);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(52, 211, 153, 0.15);
+    }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 4rem;
+      animation: fadeUp 0.8s ease-out 0.75s both;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 1.5rem;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      text-align: center;
+      margin-top: 5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--glass-border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      animation: fadeUp 0.8s ease-out 0.9s both;
+    }
+
+    .footer a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+
+    /* ===== ANIMATIONS ===== */
     @keyframes slideDown {
       from { opacity: 0; transform: translateY(-30px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(40px); }
+      from { opacity: 0; transform: translateY(30px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .footer {
-      text-align: center;
-      margin-top: 6rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--glass-border);
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-      animation: fadeUp 1s ease-out 1s both;
-    }
-
+    /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
       .hero { margin-bottom: 4rem; }
       nav { margin-bottom: 3rem; }
+      .nav-badges { display: none; }
+      .stats-bar { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <!-- Ambient Background -->
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
+  <div class="bg-mesh">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="grid-overlay"></div>
 
   <div class="container">
     <!-- Navigation -->
     <nav>
       <div class="logo">
-        <span>⚡</span> <span class="logo-text">IoT Connect</span>
+        <div class="logo-icon">⚡</div>
+        <div class="logo-text"><span>IoT</span> Connect</div>
+      </div>
+      <div class="nav-badges">
+        <div class="nav-badge">ESP32</div>
+        <div class="nav-badge live">● Live</div>
       </div>
     </nav>
 
     <!-- Hero Section -->
     <main class="hero">
-      <h1><span>Next-Generation</span><br>Sensor Intelligence</h1>
+      <div class="hero-eyebrow">🚀 Powered by ESP32 + DHT22</div>
+      <h1>
+        <span class="gradient-text">Next-Generation</span>
+        <span class="line-2">Sensor Intelligence</span>
+      </h1>
       <p>
-        Experience real-time monitoring of your surroundings via our advanced ESP32-powered IoT solution. Track temperature and humidity, alongside precision distance measurements, all in one stunning interface.
+        Monitor temperature, humidity & distance in real-time. 
+        Our ESP32-powered solution delivers precision sensor data 
+        to a beautiful dashboard — accessible from anywhere in the world.
       </p>
-      
-      <div class="cta-container">
-        <a href="dashboard.html" class="cta-btn">
-          Enter Dashboard
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+
+      <div class="cta-group">
+        <a href="dashboard.html" class="cta-btn cta-primary">
+          Open Dashboard
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
           </svg>
+        </a>
+        <a href="material_monitor.html" class="cta-btn cta-secondary">
+          📦 Material Monitor
         </a>
       </div>
     </main>
@@ -290,32 +499,49 @@
     <!-- Features Section -->
     <section class="features">
       <div class="feature-card">
-        <div class="icon-wrapper">🌡️</div>
+        <div class="feature-icon">🌡️</div>
         <h3>Climate Tracking</h3>
-        <p>Monitor real-time ambient temperature and humidity levels seamlessly using high-precision DHT22 environmental sensors.</p>
+        <p>Monitor real-time ambient temperature and humidity with high-precision DHT22 environmental sensors.</p>
       </div>
 
       <div class="feature-card">
-        <div class="icon-wrapper">📏</div>
-        <h3>Proximity Alerts</h3>
-        <p>Utilize robust ultrasonic waves to calculate distances instantly, allowing for accurate spatial awareness and measurement.</p>
+        <div class="feature-icon">📏</div>
+        <h3>Distance Sensing</h3>
+        <p>Ultrasonic waves calculate distances instantly for accurate spatial awareness and material level tracking.</p>
       </div>
 
       <div class="feature-card">
-        <div class="icon-wrapper">📊</div>
+        <div class="feature-icon">📊</div>
         <h3>Live Analytics</h3>
-        <p>Immerse yourself in beautiful, dynamic charts that visualize historical data trends and provide meaningful insights instantly.</p>
+        <p>Beautiful, dynamic charts visualize historical data trends and provide meaningful insights in real-time.</p>
       </div>
 
-      <div class="feature-card" onclick="window.location.href='material_monitor.html'" style="cursor: pointer;">
-        <div class="icon-wrapper">📦</div>
+      <div class="feature-card clickable" onclick="window.location.href='material_monitor.html'">
+        <div class="feature-icon">📦</div>
         <h3>Level Monitoring</h3>
-        <p>Specialized dashboard for material inventory. Calculate volume and fill percentage for boxes and containers in real-time.</p>
+        <p>Specialized dashboard for material inventory. Calculate volume and fill percentage for any container.</p>
+        <span class="feature-tag">→ Open Monitor</span>
       </div>
     </section>
 
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-number">3</div>
+        <div class="stat-label">Sensor Types</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">5s</div>
+        <div class="stat-label">Refresh Rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">∞</div>
+        <div class="stat-label">Global Access</div>
+      </div>
+    </div>
+
     <footer class="footer">
-      <p>&copy; 2026 IoT Connect Architecture. Designed with modern aesthetics.</p>
+      <p>© 2026 <a href="#">IoT Connect</a> — Built with ESP32 & Node.js. Designed for modern IoT.</p>
     </footer>
   </div>
 </body>

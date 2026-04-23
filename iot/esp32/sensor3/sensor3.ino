@@ -43,9 +43,13 @@ void setup() {
   // No server IP field needed anymore — it's hardcoded above!
   // The portal only asks for WiFi name and password.
 
-  Serial.println("Starting Setup Portal...");
+  // Keep the setup portal open for 3 minutes (180 seconds)
+  // so the user has enough time to connect and configure WiFi
+  wm.setConfigPortalTimeout(180);
+
+  Serial.println("Starting Setup Portal... (will stay open for 3 minutes)");
   if (!wm.autoConnect("IoT-Setup-Portal")) {
-    Serial.println("Failed to connect, restarting...");
+    Serial.println("No one connected. Restarting to try again...");
     delay(3000);
     ESP.restart();
   }
