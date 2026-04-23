@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <DHT.h>
 #include <WiFiManager.h> // Make sure to install "WiFiManager" by tablatronix
 
@@ -10,8 +11,11 @@
 #define ECHO_PIN 18
 #define RESET_PIN 0 // Most ESP32 boards use GPIO 0 for the "BOOT" button
 
-// Default values
-char server_ip[40] = "10.134.61.2"; 
+// ============================================
+// YOUR LIVE WEBSITE URL (hosted on Render)
+// Non-developers don't need to change anything!
+// ============================================
+const char* serverUrl = "https://iot-9ok1.onrender.com/api/sensor";
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -36,8 +40,8 @@ void setup() {
     delay(1000);
   }
 
-  WiFiManagerParameter custom_server_ip("server", "Server IP (e.g. 10.134.61.2)", server_ip, 40);
-  wm.addParameter(&custom_server_ip);
+  // No server IP field needed anymore — it's hardcoded above!
+  // The portal only asks for WiFi name and password.
 
   Serial.println("Starting Setup Portal...");
   if (!wm.autoConnect("IoT-Setup-Portal")) {
@@ -46,8 +50,8 @@ void setup() {
     ESP.restart();
   }
 
-  strcpy(server_ip, custom_server_ip.getValue());
-  Serial.println("\nCONNECTED! Server: " + String(server_ip));
+  Serial.println("\nCONNECTED to WiFi!");
+  Serial.println("Sending data to: " + String(serverUrl));
 }
 
 float readDistance() {
@@ -76,9 +80,11 @@ void loop() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
+    WiFiClientSecure client;
+    client.setInsecure(); // Allow HTTPS without certificate (safe for IoT)
+
     HTTPClient http;
-    String serverUrl = "http://" + String(server_ip) + ":3000/api/sensor";
-    http.begin(serverUrl);
+    http.begin(client, serverUrl);
     http.addHeader("Content-Type", "application/json");
     
     float temperature = dht.readTemperature();
@@ -90,7 +96,17 @@ void loop() {
                         ",\"distance\":" + String(distance) + "}";
     
     int httpResponseCode = http.POST(jsonPayload);
+    
+    if (httpResponseCode > 0) {
+      Serial.println("Data sent! Response: " + String(httpResponseCode));
+    } else {
+      Serial.println("Error sending data: " + String(httpResponseCode));
+    }
+    
     http.end();
+  } else {
+    Serial.println("WiFi disconnected. Reconnecting...");
+    WiFi.reconnect();
   }
   delay(5000); 
 }
