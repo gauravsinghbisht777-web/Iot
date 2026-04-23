@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Monitor | IoT Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent-primary: #f97316; /* Temperature Orange */
+            --accent-secondary: #06b6d4; /* Humidity Cyan */
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            /* Status Colors */
+            --color-safe: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #f43f5e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sidebar / Metrics */
+        .metrics-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-value {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .card-unit {
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        .temp-card .card-value { color: var(--accent-primary); }
+        .humidity-card .card-value { color: var(--accent-secondary); }
+
+        .status-indicator {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--color-safe);
+        }
+
+        /* Main Display Area (Charts) */
+        .charts-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2rem;
+            flex: 1;
+            min-height: 400px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(-5px);
+        }
+
+        @media (max-width: 900px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <h1>Climate Intelligence</h1>
+        <a href="index.html" class="btn-back">← Back Home</a>
+    </header>
+
+    <div class="dashboard">
+        <!-- Sidebar with real-time stats -->
+        <aside class="metrics-sidebar">
+            <div class="card temp-card">
+                <div class="card-label">Ambient Temperature</div>
+                <div class="card-value"><span id="tempVal">--</span><span class="card-unit">°C</span></div>
+                <div class="status-indicator">
+                    <div class="dot" id="tempDot"></div>
+                    <span id="tempStatus">Optimal</span>
+                </div>
+            </div>
+
+            <div class="card humidity-card">
+                <div class="card-label">Relative Humidity</div>
+                <div class="card-value"><span id="humVal">--</span><span class="card-unit">%</span></div>
+                <div class="status-indicator">
+                    <div class="dot" id="humDot"></div>
+                    <span id="humStatus">Balanced</span>
+                </div>
+            </div>
+
+            <div class="card" style="padding: 1.5rem;">
+                <div class="card-label">Update Interval</div>
+                <div style="font-weight: 700; font-size: 1.1rem;">5 Seconds</div>
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Live sensor stream</div>
+            </div>
+        </aside>
+
+        <!-- Main Chart Section -->
+        <main class="charts-area">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Climate History (Last 50 Readings)</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Real-time monitoring enabled</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="climateChart"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const tempVal = document.getElementById('tempVal');
+        const humVal = document.getElementById('humVal');
+        const tempStatus = document.getElementById('tempStatus');
+        const humStatus = document.getElementById('humStatus');
+        const tempDot = document.getElementById('tempDot');
+        const humDot = document.getElementById('humDot');
+
+        // Setup Chart
+        const ctx = document.getElementById('climateChart').getContext('2d');
+        const climateChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Temperature (°C)',
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        tension: 0.4,
+                        fill: true,
+                        data: [],
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        tension: 0.4,
+                        fill: true,
+                        data: [],
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        display: false,
+                        grid: { display: false }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Temp (°C)', color: '#94a3b8' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Humidity (%)', color: '#94a3b8' },
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#f8fafc',
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { size: 12, weight: '600' }
+                        }
+                    }
+                }
+            }
+        });
+
+        async function updateData() {
+            try {
+                // Fetch Current Data
+                const res = await fetch('/api/sensor');
+                const data = await res.json();
+                
+                if (data.temperature !== null) {
+                    const temp = data.temperature;
+                    const hum = data.humidity;
+                    
+                    tempVal.innerText = temp.toFixed(1);
+                    humVal.innerText = hum.toFixed(1);
+
+                    // Update Status Indicator Temperature
+                    if (temp > 35) {
+                        tempStatus.innerText = 'High Heat';
+                        tempDot.style.background = '#f43f5e';
+                    } else if (temp < 15) {
+                        tempStatus.innerText = 'Cold';
+                        tempDot.style.background = '#06b6d4';
+                    } else {
+                        tempStatus.innerText = 'Optimal';
+                        tempDot.style.background = '#10b981';
+                    }
+
+                    // Update Status Indicator Humidity
+                    if (hum > 70) {
+                        humStatus.innerText = 'High Humidity';
+                        humDot.style.background = '#06b6d4';
+                    } else if (hum < 30) {
+                        humStatus.innerText = 'Dry Air';
+                        humDot.style.background = '#f59e0b';
+                    } else {
+                        humStatus.innerText = 'Balanced';
+                        humDot.style.background = '#10b981';
+                    }
+                }
+
+                // Fetch History for Chart
+                const historyRes = await fetch('/api/history');
+                const historyData = await historyRes.json();
+
+                if (historyData.length > 0) {
+                    climateChart.data.labels = historyData.map((_, i) => i);
+                    climateChart.data.datasets[0].data = historyData.map(d => d.temperature);
+                    climateChart.data.datasets[1].data = historyData.map(d => d.humidity);
+                    climateChart.update('none'); // Update without animation for smoothness
+                }
+
+            } catch (err) {
+                console.error('Failed to fetch sensor data:', err);
+            }
+        }
+
+        // Initial update and then every 5 seconds
+        updateData();
+        setInterval(updateData, 5000);
+    </script>
+</body>
+</html>
